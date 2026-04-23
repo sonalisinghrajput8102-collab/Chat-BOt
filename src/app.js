@@ -3,42 +3,39 @@ import cors from "cors";
 import morgan from "morgan";
 import chatRoutes from "./routes/chatRoutes.js";
 
-function isAllowedOrigin(origin) {
-  if (!origin) return true;
-
-  try {
-    const parsed = new URL(origin);
-    return parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1";
-  } catch {
-    return false;
-  }
-}
+const allowedOrigins = [
+    "http://localhost:5173",
+    "https://chat-bot-frontend-bice.vercel.app"
+];
 
 export function createApp() {
-  const app = express();
+    const app = express();
 
-  app.use(
-    cors({
-      origin: (origin, callback) => {
-        if (isAllowedOrigin(origin)) {
-          callback(null, true);
-          return;
-        }
+    app.use(
+        cors({
+            origin: (origin, callback) => {
+                // allow requests with no origin (like Postman, mobile apps)
+                if (!origin) return callback(null, true);
 
-        callback(new Error("CORS blocked for this origin."));
-      },
-      credentials: true,
-    }),
-  );
-  app.use(express.json({ limit: "1mb" }));
-  app.use(morgan("dev"));
+                if (allowedOrigins.includes(origin)) {
+                    return callback(null, true);
+                }
 
-  app.use("/api", chatRoutes);
+                return callback(new Error("CORS blocked for this origin"));
+            },
+            credentials: true,
+        })
+    );
 
-  app.use((err, _req, res, _next) => {
-    console.error(err);
-    res.status(500).json({ error: "Internal server error" });
-  });
+    app.use(express.json({ limit: "1mb" }));
+    app.use(morgan("dev"));
 
-  return app;
+    app.use("/api", chatRoutes);
+
+    app.use((err, _req, res, _next) => {
+        console.error(err);
+        res.status(500).json({ error: "Internal server error" });
+    });
+
+    return app;
 }
